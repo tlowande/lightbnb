@@ -113,8 +113,25 @@ exports.addUser = addUser;
  * @param {string} guest_id The id of the user.
  * @return {Promise<[{}]>} A promise to the reservations.
  */
-const getAllReservations = function (guest_id, limit = 10) {
-  return getAllProperties(null, 2);
+const getAllReservations = async function (guest_id, limit = 10) {
+  try{
+    const userResObj = await pool.query(`
+    SELECT reservations.*, properties.*, AVG(rating) AS average_rating 
+    FROM reservations 
+    JOIN property_reviews 
+    ON property_reviews.reservation_id = reservations.id 
+    JOIN properties ON reservations.property_id = properties.id
+    WHERE reservations.guest_id = $1
+    GROUP BY properties.id, reservations.id
+    LIMIT $2;
+    `, [guest_id, limit]);
+    if (!userResObj) {
+      return null
+    } else {
+      return userResObj.rows
+    }
+  }
+  catch (err) { console.error('query error', err.stack)};
 }
 exports.getAllReservations = getAllReservations;
 
