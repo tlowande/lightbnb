@@ -187,9 +187,7 @@ const getAllProperties = function (options, limit = 10) {
   query += ` ORDER BY cost_per_night
   LIMIT $${values.length};
   `;
-  
-  console.log(query);
-  console.log(values[0]);
+
   return pool.query(query, values)
     .then(res => res.rows)
     .catch(err => console.error('query error', err.stack));
@@ -210,12 +208,27 @@ exports.getAllProperties = getAllProperties;
  * @param {{}} property An object containing all of the property details.
  * @return {Promise<{}>} A promise to the property.
  */
-const addProperty = function (property) {
-  const propertyId = Object.keys(properties).length + 1;
-  property.id = propertyId;
-  properties[propertyId] = property;
-  return Promise.resolve(property);
+const addProperty = async function (property) {
+  try {
+    const addProperty = await pool.query(`
+    INSERT INTO properties (owner_id, title, description, thumbnail_photo_url, cover_photo_url, cost_per_night, parking_spaces, number_of_bathrooms, number_of_bedrooms,country, street, city, province, post_code )
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+    RETURNING *;
+    `, [property.owner_id, property.title, property.description, property.thumbnail_photo_url, property.cover_photo_url, property.cost_per_night, property.parking_spaces, property.number_of_bathrooms, property. number_of_bedrooms, property.country, property.street, property.city, property.province, property.post_code ])
+    if (!addProperty) {
+      return null
+    } else {
+      return addProperty.rows[0]
+    }
+  } catch (err) {
+    console.error('query error', err.stack)
+  }
 }
+  
+  
+  // const propertyId = Object.keys(properties).length + 1;
+  // property.id = propertyId;
+  // properties[propertyId] = property;
+  // return Promise.resolve(property);
 exports.addProperty = addProperty;
-
 
