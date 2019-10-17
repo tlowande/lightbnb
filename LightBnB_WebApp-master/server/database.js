@@ -28,7 +28,7 @@ const getUserWithEmail = async function (email) {
     } else {
       return userObject.rows[0]
     }
-  } catch (err) { 
+  } catch (err) {
     console.error('query error', err.stack)
   }
 }
@@ -69,7 +69,7 @@ const getUserWithId = async function (id) {
     } else {
       return idObject.rows[0]
     }
-  } catch (err) { 
+  } catch (err) {
     console.error('query error', err.stack)
   }
 }
@@ -94,7 +94,7 @@ const addUser = async function (user) {
     } else {
       return addUser.rows[0]
     }
-  } catch (err) { 
+  } catch (err) {
     console.error('query error', err.stack)
   }
 
@@ -114,7 +114,7 @@ exports.addUser = addUser;
  * @return {Promise<[{}]>} A promise to the reservations.
  */
 const getAllReservations = async function (guest_id, limit = 10) {
-  try{
+  try {
     const userResObj = await pool.query(`
     SELECT reservations.*, properties.*, AVG(rating) AS average_rating 
     FROM reservations 
@@ -131,7 +131,7 @@ const getAllReservations = async function (guest_id, limit = 10) {
       return userResObj.rows
     }
   }
-  catch (err) { console.error('query error', err.stack)};
+  catch (err) { console.error('query error', err.stack) };
 }
 exports.getAllReservations = getAllReservations;
 
@@ -144,14 +144,53 @@ exports.getAllReservations = getAllReservations;
  * @return {Promise<[{}]>}  A promise to the properties.
  */
 const getAllProperties = function (options, limit = 10) {
-  return pool.query(`
+  const values = []
+  let query = `
   SELECT properties.*, AVG(rating) AS average_rating 
   FROM properties 
   JOIN property_reviews 
   ON property_reviews.property_id = properties.id 
-  GROUP BY properties.id 
-  LIMIT $1;
-  `, [limit])
+  `;
+
+  if (options.city) {
+    values.push(`%${options.city}%`);
+    query += `WHERE city iLIKE $${values.length} `;
+  }
+
+  if (options.owner_id) {
+    values.push(options.owner_id);
+    if (values.length === 1) {
+      query += ` WHERE owner_id = $${values.length} `;
+    } else {
+      query += ` AND owner_id = $${values.length} `;
+    }
+  }
+//cost on the DB are multiplied by 100 to  avoid cents
+  if (options.minimum_price_per_night && options.maximum_price_per_night) {
+    values.push((options.minimum_price_per_night * 100), (options.maximum_price_per_night* 100));
+    if (values.length === 2) {
+      query += ` WHERE cost_per_night BETWEEN $${values.length - 1} AND $${values.length}`;
+    } else {
+      query += ` AND cost_per_night BETWEEN $${values.length - 1} AND $${values.length}`;
+    }
+  }
+
+  query += `
+  GROUP BY properties.id`
+  
+  if (options.minimum_rating) {
+    values.push(options.minimum_rating);
+    query += ` HAVING AVG(rating) >= $${values.length} `;
+  }
+  
+  values.push(limit);
+  query += ` ORDER BY cost_per_night
+  LIMIT $${values.length};
+  `;
+  
+  console.log(query);
+  console.log(values[0]);
+  return pool.query(query, values)
     .then(res => res.rows)
     .catch(err => console.error('query error', err.stack));
 }
