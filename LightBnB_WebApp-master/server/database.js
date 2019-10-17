@@ -141,7 +141,7 @@ const getAllProperties = function (options, limit = 10) {
   let query = `
   SELECT properties.*, AVG(rating) AS average_rating 
   FROM properties 
-  JOIN property_reviews 
+  LEFT JOIN property_reviews 
   ON property_reviews.property_id = properties.id 
   `;
 
@@ -211,6 +211,7 @@ const addProperty = async function (property) {
     if (!addProperty) {
       return null
     } else {
+  
       return addProperty.rows[0]
     }
   } catch (err) {
