@@ -1,13 +1,6 @@
 const properties = require('./json/properties.json');
 const users = require('./json/users.json');
-const { Pool } = require('pg');
-
-const pool = new Pool({
-  user: 'vagrant',
-  password: '123',
-  host: 'localhost',
-  database: 'lightbnb'
-});
+const db = require('./dbIndex')
 
 /// Users
 
@@ -18,7 +11,7 @@ const pool = new Pool({
  */
 const getUserWithEmail = async function (email) {
   try {
-    const userObject = await pool.query(`
+    const userObject = await db.query(`
     SELECT users.* 
     FROM users
     WHERE email = $1;
@@ -35,7 +28,7 @@ const getUserWithEmail = async function (email) {
 
 
 //BUILT WITH PROMISE INSTEAD OF ASYNC/AWAIT
-//   return pool.query(`
+//   return db.query(`
 //   SELECT users.* 
 //   FROM users
 //   WHERE email = $1
@@ -59,7 +52,7 @@ exports.getUserWithEmail = getUserWithEmail;
  */
 const getUserWithId = async function (id) {
   try {
-    const idObject = await pool.query(`
+    const idObject = await db.query(`
     SELECT users.* 
     FROM users
     WHERE id = $1;
@@ -84,7 +77,7 @@ exports.getUserWithId = getUserWithId;
  */
 const addUser = async function (user) {
   try {
-    const addUser = await pool.query(`
+    const addUser = await db.query(`
     INSERT INTO users (name, password, email)
     VALUES ($1, $2, $3)
     RETURNING *;
@@ -115,7 +108,7 @@ exports.addUser = addUser;
  */
 const getAllReservations = async function (guest_id, limit = 10) {
   try {
-    const userResObj = await pool.query(`
+    const userResObj = await db.query(`
     SELECT reservations.*, properties.*, AVG(rating) AS average_rating 
     FROM reservations 
     JOIN property_reviews 
@@ -188,7 +181,7 @@ const getAllProperties = function (options, limit = 10) {
   LIMIT $${values.length};
   `;
 
-  return pool.query(query, values)
+  return db.query(query, values)
     .then(res => res.rows)
     .catch(err => console.error('query error', err.stack));
 }
@@ -210,7 +203,7 @@ exports.getAllProperties = getAllProperties;
  */
 const addProperty = async function (property) {
   try {
-    const addProperty = await pool.query(`
+    const addProperty = await db.query(`
     INSERT INTO properties (owner_id, title, description, thumbnail_photo_url, cover_photo_url, cost_per_night, parking_spaces, number_of_bathrooms, number_of_bedrooms,country, street, city, province, post_code )
     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
     RETURNING *;
